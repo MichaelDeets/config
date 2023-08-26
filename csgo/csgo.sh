@@ -1,22 +1,29 @@
 #!/bin/bash
-GAMEROOT=$(cd "${0%/*}" && echo $PWD)
-UNAME=`uname`
+set -a
+LD_PRELOAD=""
+xrandr --output HDMI-1 --off
+
 GAMEEXE=csgo_linux64
-#ulimit -n 2048
+GAMEROOT=$(cd "${0%/*}" && echo $PWD)
 export LD_LIBRARY_PATH="${GAMEROOT}"/bin:"${GAMEROOT}"/bin/linux64:$LD_LIBRARY_PATH
-export multithread_glsl_compiler=1
-export AMD_TEX_ANISO=0
-export MESA_NO_ERROR=1
-export vblank_mode=0
 
-#export DXVK_HUD=full
-#export DXVK_CONFIG_FILE=/home/michael/.dxvk/dxvk.conf
+LAUNCHOPTS="-nopreload -novid -nojoy -no-browser -nohltv -vulkan -tickrate 128 -softparticlesdefaultoff -toconsole"
+LD_PRELOAD="/usr/lib64/libSDL2-2.0.so.0:/usr/lib/dxvk-native/x64/libdxvk_d3d9.so"
 
-cd "$GAMEROOT"
+. ~/.cs/envvars.sh
+
+vibrant-cli DP-2 2
+xrandr --output DP-2 --scale 1x1 --mode 1920x1080 --rate 390 --filter nearest --brightness 1 --gamma 1.5
+
 STATUS=42
-
+UNAME=`uname`
+cd "$GAMEROOT"
 while [ $STATUS -eq 42 ]; do
-	${DEBUGGER} nice -n -10 "${GAMEROOT}"/${GAMEEXE} -vulkan -novid -nojoy -no-browser -console -nohltv -nomessagebox -nogammaramp "$@"
+	${SCHEDRT} ionice -c 2 -n 0 "${GAMEROOT}"/${GAMEEXE} $LAUNCHOPTS "$@"
 	STATUS=$?
 done
+
+vibrant-cli DP-2 1
+xrandr --output DP-2 --mode 1920x1080 --rate 390 --scale 1x1 --brightness 1 --gamma 1
+xrandr --output HDMI-1 --off;xrandr --output HDMI-1 --mode 3840x2160 --scale 0.8x0.8 --right-of DP-2 --filter nearest --rate 120
 exit $STATUS
